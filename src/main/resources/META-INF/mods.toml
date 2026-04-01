@@ -1,0 +1,39 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+
+license="LGPL-2.1-or-later"
+issueTrackerURL=""
+showAsResourcePack=false
+
+[[mods]]
+modId="forbidden_tiers"
+version="${version}"
+displayName="Forbidden Tiers"
+displayURL=""
+logoFile=""
+credits="me"
+authors="Kayn"
+description='''
+A mod that adds reenables the Mythic and Ancient tiers for ISS
+  '''
+
+[[dependencies.forbidden_tiers]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.forbidden_tiers]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.forbidden_tiers]]
+modId="irons_spellbooks"
+mandatory=true
+versionRange="[1.0,)"
+ordering="AFTER"
+side="BOTH"

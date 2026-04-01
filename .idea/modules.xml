@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Forbidden-Tiers.iml" filepath="$PROJECT_DIR$/Forbidden-Tiers.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Forbidden-Tiers.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Forbidden-Tiers.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/Forbidden-Tiers.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Forbidden-Tiers.test.iml" />
     </modules>
   </component>
 </project>
