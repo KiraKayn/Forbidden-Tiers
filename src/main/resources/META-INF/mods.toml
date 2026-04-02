@@ -17,6 +17,9 @@ description='''
 A mod that adds reenables the Mythic and Ancient tiers for ISS
   '''
 
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
+
 [[dependencies.forbidden_tiers]]
 modId="forge"
 mandatory=true

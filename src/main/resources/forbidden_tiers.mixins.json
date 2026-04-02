@@ -4,6 +4,9 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "forbidden_tiers.refmap.json",
   "mixins": [
+    "AbstractSpellMixin",
+    "InkItemMixin",
+    "SpellRarityMixin"
   ],
   "client": [
   ],
