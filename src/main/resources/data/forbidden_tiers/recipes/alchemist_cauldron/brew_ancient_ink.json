@@ -1,0 +1,16 @@
+{
+  "type": "irons_spellbooks:alchemist_cauldron_brew",
+  "base_fluid": {
+    "FluidName": "forbidden_tiers:mythic_ink",
+    "Amount": 1000
+  },
+  "input": {
+    "item": "irons_spellbooks:mithril_scrap"
+  },
+  "results": [
+    {
+      "FluidName": "forbidden_tiers:ancient_ink",
+      "Amount": 250
+    }
+  ]
+}

@@ -26,21 +26,6 @@ public abstract class SpellRarityMixin {
             cir.setReturnValue(ChatFormatting.DARK_RED);
         } else if ((Object) this == SpellRarityExtender.ANCIENT) {
             cir.setReturnValue(ChatFormatting.LIGHT_PURPLE);
-
-        }
-    }
-
-    @Inject(method = "getRawRarityConfigInternal", at = @At("RETURN"), cancellable = true)
-    private static void onGetRawRarityConfig(CallbackInfoReturnable<List<Double>> cir) {
-        List<Double> original = cir.getReturnValue();
-        if (original != null && original.size() == 5) {
-            List<Double> extended = new ArrayList<>();
-            for (double w : original) {
-                extended.add(w * 5.0 / 7.0);
-            }
-            extended.add(1.0 / 7.0);
-            extended.add(1.0 / 7.0);
-            cir.setReturnValue(extended);
         }
     }
 }

@@ -3,5 +3,7 @@
   "rarity.irons_spellbooks.ancient": "Ancient",
   "item.forbidden_tiers.mythic_ink": "Mythic Ink",
   "item.forbidden_tiers.ancient_ink": "Ancient Ink",
-  "tooltip.irons_spellbooks.ink_tooltip": "Grants %s spell rarity when used in the Scroll Forge"
+  "tooltip.irons_spellbooks.ink_tooltip": "Grants %s spell rarity when used in the Scroll Forge",
+  "fluid_type.forbidden_tiers.mythic_ink": "Mythic Ink",
+  "fluid_type.forbidden_tiers.ancient_ink": "Ancient Ink"
 }
