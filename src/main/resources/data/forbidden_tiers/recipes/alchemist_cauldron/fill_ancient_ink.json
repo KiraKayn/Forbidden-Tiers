@@ -1,0 +1,14 @@
+{
+  "type": "irons_spellbooks:alchemist_cauldron_fill",
+  "fluid": {
+    "Amount": 250,
+    "FluidName": "forbidden_tiers:ancient_ink"
+  },
+  "input": {
+    "item": "forbidden_tiers:ancient_ink"
+  },
+  "result": {
+    "count": 1,
+    "item": "minecraft:glass_bottle"
+  }
+}
