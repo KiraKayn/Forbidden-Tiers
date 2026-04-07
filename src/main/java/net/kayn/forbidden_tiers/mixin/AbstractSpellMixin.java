@@ -17,19 +17,66 @@ import java.util.stream.Collectors;
 @Mixin(value = AbstractSpell.class, remap = false)
 public abstract class AbstractSpellMixin {
 
-    private static int levelsPerTier(int originalMaxLevel) {
-        return Math.max(1, (int) Math.ceil(originalMaxLevel / 5.0));
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static SpellConfigParameter<Integer> getMaxLevelParam() {
+        for (SpellConfigParameter<?> p : SpellConfigManagerAccessor.getAllTypes()) {
+            if ("irons_spellbooks:max_level".equals(p.key().toString())) {
+                return (SpellConfigParameter<Integer>) p;
+            }
+        }
+        return null;
+    }
+
+    private static int getConfiguredMaxLevel(AbstractSpell self) {
+        try {
+            var param = getMaxLevelParam();
+            if (param != null) {
+                return SpellConfigManager.getSpellConfigValue(self, param);
+            }
+        } catch (Exception ignored) {
+        }
+
+        try {
+            return self.getDefaultConfig().maxLevel;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
+    private static int levelsPerTier(int configMaxLevel) {
+        return Math.max(1, (int) Math.ceil(configMaxLevel / 5.0));
+    }
+
+    private static List<Double> buildCumulative(List<Double> rawConfig,
+                                                int minRarity, int maxRarOrig) {
+        if (minRarity >= maxRarOrig) {
+            return List.of(1.0);
+        }
+        if (minRarity > 0) {
+            List<Double> sub = rawConfig.subList(minRarity, maxRarOrig + 1);
+            double subtotal = sub.stream().mapToDouble(Double::doubleValue).sum();
+            if (subtotal <= 0) return List.of(1.0);
+            List<Double> adjusted = sub.stream()
+                    .map(w -> ((w / subtotal) * (1 - subtotal)) + w)
+                    .collect(Collectors.toList());
+            double counter = 0;
+            List<Double> result = new ArrayList<>();
+            for (double w : adjusted) {
+                counter += w;
+                result.add(counter);
+            }
+            return result;
+        }
+        return SpellRarity.getRarityConfig();
     }
 
     @Inject(method = "getMaxLevel", at = @At("HEAD"), cancellable = true)
     private void onGetMaxLevel(CallbackInfoReturnable<Integer> cir) {
-        AbstractSpell self = (AbstractSpell)(Object)this;
-        try {
-            int original = self.getDefaultConfig().maxLevel;
-            if (original > 0) {
-                cir.setReturnValue(original + 2 * levelsPerTier(original));
-            }
-        } catch (Exception ignored) {}
+        AbstractSpell self = (AbstractSpell) (Object) this;
+        int base = getConfiguredMaxLevel(self);
+        if (base > 0) {
+            cir.setReturnValue(base + 2 * levelsPerTier(base));
+        }
     }
 
     @Inject(method = "getMaxRarity", at = @At("HEAD"), cancellable = true)
@@ -39,104 +86,144 @@ public abstract class AbstractSpellMixin {
 
     @Inject(method = "getRarity", at = @At("HEAD"), cancellable = true)
     private void onGetRarity(int level, CallbackInfoReturnable<SpellRarity> cir) {
-        AbstractSpell self = (AbstractSpell)(Object)this;
-        int originalMaxLevel;
-        try {
-            originalMaxLevel = self.getDefaultConfig().maxLevel;
-        } catch (Exception e) {
+        AbstractSpell self = (AbstractSpell) (Object) this;
+
+        int configMaxLevel = getConfiguredMaxLevel(self);
+        int configMinRarity = self.getMinRarity();
+        if (configMaxLevel <= 0) return;
+
+        int lpt = levelsPerTier(configMaxLevel);
+        int mythicStart = configMaxLevel + 1;
+        int ancientStart = configMaxLevel + lpt + 1;
+        int newMax = configMaxLevel + 2 * lpt;
+
+        if (level >= newMax) {
+            cir.setReturnValue(SpellRarityExtender.ANCIENT);
             return;
         }
 
-        int lpt          = levelsPerTier(originalMaxLevel);
-        int mythicStart  = originalMaxLevel + 1;
-        int ancientStart = originalMaxLevel + lpt + 1;
-        int newMax       = originalMaxLevel + 2 * lpt;
-
-        if (level >= newMax)       { cir.setReturnValue(SpellRarityExtender.ANCIENT); return; }
-        if (level >= ancientStart) { cir.setReturnValue(SpellRarityExtender.ANCIENT); return; }
-        if (level >= mythicStart)  { cir.setReturnValue(SpellRarityExtender.MYTHIC);  return; }
-        if (level >= originalMaxLevel) { cir.setReturnValue(SpellRarity.LEGENDARY);   return; }
-        if (originalMaxLevel == 1) {
-            cir.setReturnValue(SpellRarity.values()[self.getMinRarity()]);
+        if (level >= ancientStart) {
+            cir.setReturnValue(SpellRarityExtender.ANCIENT);
             return;
         }
 
-        double pct         = (double) level / (double) originalMaxLevel;
-        List<Double> rawConfig = SpellRarity.getRawRarityConfig();
-        int minRarity      = self.getMinRarity();
-        int maxRarOrig     = SpellRarity.LEGENDARY.getValue();
+        if (level >= mythicStart) {
+            cir.setReturnValue(
+                    configMinRarity >= SpellRarityExtender.ANCIENT_VALUE
+                            ? SpellRarityExtender.ANCIENT
+                            : SpellRarityExtender.MYTHIC
+            );
+            return;
+        }
 
-        List<Double> cumulative = buildCumulative(rawConfig, minRarity, maxRarOrig);
+        if (configMinRarity >= SpellRarityExtender.ANCIENT_VALUE) {
+            cir.setReturnValue(SpellRarityExtender.ANCIENT);
+            return;
+        }
 
-        int lookupOffset = maxRarOrig + 1 - cumulative.size();
-        for (int i = 0; i < cumulative.size(); i++) {
-            if (pct <= cumulative.get(i)) {
+        if (configMinRarity >= SpellRarityExtender.MYTHIC_VALUE) {
+            cir.setReturnValue(SpellRarityExtender.MYTHIC);
+            return;
+        }
+
+        if (configMaxLevel == 1) {
+            int idx = Math.min(configMinRarity, SpellRarity.LEGENDARY.getValue());
+            cir.setReturnValue(SpellRarity.values()[idx]);
+            return;
+        }
+
+        if (level >= configMaxLevel) {
+            cir.setReturnValue(SpellRarity.LEGENDARY);
+            return;
+        }
+
+        double pct = (double) level / (double) configMaxLevel;
+        List<Double> raw = SpellRarity.getRawRarityConfig();
+        int maxRarOrig = SpellRarity.LEGENDARY.getValue();
+        int effectiveMin = Math.min(configMinRarity, maxRarOrig);
+
+        List<Double> cum = buildCumulative(raw, effectiveMin, maxRarOrig);
+        int lookupOffset = maxRarOrig + 1 - cum.size();
+
+        for (int i = 0; i < cum.size(); i++) {
+            if (pct <= cum.get(i)) {
                 cir.setReturnValue(SpellRarity.values()[i + lookupOffset]);
                 return;
             }
         }
-        cir.setReturnValue(SpellRarity.COMMON);
+        cir.setReturnValue(SpellRarity.LEGENDARY);
     }
+
     @Inject(method = "getMinLevelForRarity", at = @At("HEAD"), cancellable = true)
     private void onGetMinLevelForRarity(SpellRarity rarity,
                                         CallbackInfoReturnable<Integer> cir) {
-        AbstractSpell self = (AbstractSpell)(Object)this;
-        int originalMaxLevel;
-        try {
-            originalMaxLevel = self.getDefaultConfig().maxLevel;
-        } catch (Exception e) {
+        AbstractSpell self = (AbstractSpell) (Object) this;
+
+        int configMaxLevel = getConfiguredMaxLevel(self);
+        int configMinRarity = self.getMinRarity();
+        if (configMaxLevel <= 0) {
+            cir.setReturnValue(0);
             return;
         }
 
-        int lpt       = levelsPerTier(originalMaxLevel);
-        int minRarity = self.getMinRarity();
+        int lpt = levelsPerTier(configMaxLevel);
         int rarityVal = rarity.getValue();
 
-        if (rarityVal == SpellRarityExtender.MYTHIC_VALUE) {
-            if (minRarity >= SpellRarityExtender.MYTHIC_VALUE) {
-                cir.setReturnValue(rarityVal == minRarity ? 1 : 0);
-            } else {
-                cir.setReturnValue(originalMaxLevel + 1);
-            }
-            return;
-        }
         if (rarityVal == SpellRarityExtender.ANCIENT_VALUE) {
-            if (minRarity >= SpellRarityExtender.MYTHIC_VALUE) {
-                cir.setReturnValue(rarityVal == minRarity ? 1 : 0);
+            if (configMinRarity >= SpellRarityExtender.ANCIENT_VALUE) {
+                cir.setReturnValue(1);
             } else {
-                cir.setReturnValue(originalMaxLevel + lpt + 1);
+                cir.setReturnValue(configMaxLevel + lpt + 1);
             }
             return;
         }
 
-        if (rarityVal < minRarity) { cir.setReturnValue(0); return; }
-        if (rarityVal == minRarity) { cir.setReturnValue(1); return; }
-        if (originalMaxLevel == 1) { cir.setReturnValue(0); return; }
+        if (rarityVal == SpellRarityExtender.MYTHIC_VALUE) {
+            if (configMinRarity >= SpellRarityExtender.ANCIENT_VALUE) {
+                cir.setReturnValue(0);
+            } else if (configMinRarity >= SpellRarityExtender.MYTHIC_VALUE) {
+                cir.setReturnValue(1);
+            } else {
+                cir.setReturnValue(configMaxLevel + 1);
+            }
+            return;
+        }
 
-        List<Double> rawConfig = SpellRarity.getRawRarityConfig();
+        if (rarityVal < configMinRarity) {
+            cir.setReturnValue(0);
+            return;
+        }
+        if (rarityVal == configMinRarity) {
+            cir.setReturnValue(1);
+            return;
+        }
+
+        if (configMinRarity >= SpellRarityExtender.MYTHIC_VALUE) {
+            cir.setReturnValue(0);
+            return;
+        }
+
+        if (configMaxLevel == 1) {
+            cir.setReturnValue(0);
+            return;
+        }
+
+        List<Double> raw = SpellRarity.getRawRarityConfig();
         int maxRarOrig = SpellRarity.LEGENDARY.getValue();
-        List<Double> cumulative = buildCumulative(rawConfig, minRarity, maxRarOrig);
+        int effectiveMin = Math.min(configMinRarity, maxRarOrig);
 
-        int idx = rarityVal - (1 + minRarity);
-        if (idx >= 0 && idx < cumulative.size()) {
-            cir.setReturnValue((int)(cumulative.get(idx) * originalMaxLevel) + 1);
+        if (rarityVal > maxRarOrig) {
+            cir.setReturnValue(0);
+            return;
+        }
+
+        List<Double> cum = buildCumulative(raw, effectiveMin, maxRarOrig);
+        int idx = rarityVal - (1 + effectiveMin);
+
+        if (idx >= 0 && idx < cum.size()) {
+            cir.setReturnValue((int) (cum.get(idx) * configMaxLevel) + 1);
         } else {
             cir.setReturnValue(0);
         }
-    }
-    private static List<Double> buildCumulative(List<Double> rawConfig,
-                                                int minRarity, int maxRarOrig) {
-        if (minRarity != 0) {
-            List<Double> sub      = rawConfig.subList(minRarity, maxRarOrig + 1);
-            double       subtotal = sub.stream().mapToDouble(Double::doubleValue).sum();
-            List<Double> adjusted = sub.stream()
-                    .map(w -> ((w / subtotal) * (1 - subtotal)) + w)
-                    .collect(Collectors.toList());
-            double counter = 0;
-            List<Double> result = new ArrayList<>();
-            for (double w : adjusted) { counter += w; result.add(counter); }
-            return result;
-        }
-        return SpellRarity.getRarityConfig();
     }
 }
