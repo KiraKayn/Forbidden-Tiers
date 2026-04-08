@@ -3,7 +3,9 @@ package net.kayn.forbidden_tiers.mixin;
 import io.redspace.ironsspellbooks.api.config.SpellConfigManager;
 import io.redspace.ironsspellbooks.api.spells.AbstractSpell;
 import io.redspace.ironsspellbooks.api.spells.SpellRarity;
+import net.kayn.forbidden_tiers.util.BlacklistManager;
 import net.kayn.forbidden_tiers.util.SpellRarityExtender;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -47,8 +49,7 @@ public abstract class AbstractSpellMixin {
         return Math.max(1, (int) Math.ceil(configMaxLevel / 5.0));
     }
 
-    private static List<Double> buildCumulative(List<Double> rawConfig,
-                                                int minRarity, int maxRarOrig) {
+    private static List<Double> buildCumulative(List<Double> rawConfig, int minRarity, int maxRarOrig) {
         if (minRarity >= maxRarOrig) {
             return List.of(1.0);
         }
@@ -56,9 +57,7 @@ public abstract class AbstractSpellMixin {
             List<Double> sub = rawConfig.subList(minRarity, maxRarOrig + 1);
             double subtotal = sub.stream().mapToDouble(Double::doubleValue).sum();
             if (subtotal <= 0) return List.of(1.0);
-            List<Double> adjusted = sub.stream()
-                    .map(w -> ((w / subtotal) * (1 - subtotal)) + w)
-                    .collect(Collectors.toList());
+            List<Double> adjusted = sub.stream().map(w -> ((w / subtotal) * (1 - subtotal)) + w).collect(Collectors.toList());
             double counter = 0;
             List<Double> result = new ArrayList<>();
             for (double w : adjusted) {
@@ -75,7 +74,14 @@ public abstract class AbstractSpellMixin {
         AbstractSpell self = (AbstractSpell) (Object) this;
         int base = getConfiguredMaxLevel(self);
         if (base > 0) {
-            cir.setReturnValue(base + 2 * levelsPerTier(base));
+            int lpt = levelsPerTier(base);
+            ResourceLocation spellId = self.getSpellResource();
+            boolean mb = BlacklistManager.isMythicBlacklisted(spellId);
+            boolean ab = BlacklistManager.isAncientBlacklisted(spellId);
+            int extra = 2 * lpt;
+            if (ab) extra -= lpt;
+            if (mb && ab) extra -= lpt;
+            cir.setReturnValue(base + extra);
         }
     }
 
@@ -97,22 +103,25 @@ public abstract class AbstractSpellMixin {
         int ancientStart = configMaxLevel + lpt + 1;
         int newMax = configMaxLevel + 2 * lpt;
 
+        ResourceLocation spellId = self.getSpellResource();
+        boolean mythicBlacklisted = BlacklistManager.isMythicBlacklisted(spellId);
+        boolean ancientBlacklisted = BlacklistManager.isAncientBlacklisted(spellId);
+
         if (level >= newMax) {
             cir.setReturnValue(SpellRarityExtender.ANCIENT);
             return;
         }
-
         if (level >= ancientStart) {
-            cir.setReturnValue(SpellRarityExtender.ANCIENT);
+            cir.setReturnValue(ancientBlacklisted ? SpellRarity.LEGENDARY : SpellRarityExtender.ANCIENT);
             return;
         }
 
         if (level >= mythicStart) {
-            cir.setReturnValue(
-                    configMinRarity >= SpellRarityExtender.ANCIENT_VALUE
-                            ? SpellRarityExtender.ANCIENT
-                            : SpellRarityExtender.MYTHIC
-            );
+            if (mythicBlacklisted) {
+                cir.setReturnValue(ancientBlacklisted ? SpellRarity.LEGENDARY : SpellRarityExtender.ANCIENT);
+            } else {
+                cir.setReturnValue(configMinRarity >= SpellRarityExtender.ANCIENT_VALUE ? SpellRarityExtender.ANCIENT : SpellRarityExtender.MYTHIC);
+            }
             return;
         }
 
@@ -155,8 +164,7 @@ public abstract class AbstractSpellMixin {
     }
 
     @Inject(method = "getMinLevelForRarity", at = @At("HEAD"), cancellable = true)
-    private void onGetMinLevelForRarity(SpellRarity rarity,
-                                        CallbackInfoReturnable<Integer> cir) {
+    private void onGetMinLevelForRarity(SpellRarity rarity, CallbackInfoReturnable<Integer> cir) {
         AbstractSpell self = (AbstractSpell) (Object) this;
 
         int configMaxLevel = getConfiguredMaxLevel(self);
