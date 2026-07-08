@@ -18,18 +18,18 @@ public class FTItemRegistry {
     public static final RegistryObject<Item> INK_MYTHIC = ITEMS.register("mythic_ink", () ->
             new InkItem(
                     SpellRarityExtender.MYTHIC,
-                    ForgeRegistries.FLUIDS
-                            .getHolder(new ResourceLocation(ForbiddenTiers.MOD_ID, "mythic_ink"))
-                            .orElseThrow()
+                    () -> ForgeRegistries.FLUIDS
+                            .getValue(new ResourceLocation(ForbiddenTiers.MOD_ID, "mythic_ink")),
+                    new Item.Properties()
             )
     );
 
     public static final RegistryObject<Item> INK_ANCIENT = ITEMS.register("ancient_ink", () ->
             new InkItem(
                     SpellRarityExtender.ANCIENT,
-                    ForgeRegistries.FLUIDS
-                            .getHolder(new ResourceLocation(ForbiddenTiers.MOD_ID, "ancient_ink"))
-                            .orElseThrow()
+                    () -> ForgeRegistries.FLUIDS
+                            .getValue(new ResourceLocation(ForbiddenTiers.MOD_ID, "ancient_ink")),
+                    new Item.Properties()
             )
     );
 
