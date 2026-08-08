@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "net.kayn.forbidden_tiers.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
   "refmap": "forbidden_tiers.refmap.json",
   "mixins": [
     "AbstractSpellMixin",

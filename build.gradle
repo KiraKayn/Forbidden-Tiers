@@ -1,55 +1,19 @@
 plugins {
+    id 'java-library'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0.13, 6.2)'
-    id 'org.spongepowered.mixin' version '0.7.+'
+    id 'net.neoforged.moddev' version '2.0.140'
 }
 
 base {
     archivesName = "${fileName}-${mc_version}"
 }
 
+version = version
+group = modGroup
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
-
-jarJar.enable()
-
-minecraft {
-    mappings channel: 'official', version: mc_version
-    copyIdeResources = true
-
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    runs {
-        configureEach {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', ''
-            property 'forge.logging.console.level', 'debug'
-            mods {
-                "${modid}" {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        client {
-            jvmArgs '-Xms2G', '-Xmx4G'
-        }
-
-        server {
-            args "--nogui"
-        }
-
-        data {
-            workingDirectory project.file('run-data')
-            args '--mod', "${modid}", '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-        }
-    }
-}
-
-sourceSets.main.resources {
-    srcDir 'src/generated/resources'
-}
 
 repositories {
     maven {
@@ -65,7 +29,6 @@ repositories {
                 url = "https://api.modrinth.com/maven"
             }
         }
-        forRepositories(fg.repository)
         filter {
             includeGroup "maven.modrinth"
         }
@@ -95,7 +58,6 @@ repositories {
         name = "Iron's Maven - Release"
         url = "https://code.redspace.io/releases"
     }
-
     maven {
         name = "Iron's Maven - Snapshots"
         url = "https://code.redspace.io/snapshots"
@@ -103,74 +65,105 @@ repositories {
     maven { url 'https://jitpack.io' }
 }
 
-dependencies {
-    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
+neoForge {
+    version = project.neo_version
 
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.modid
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.modid
+        }
+
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.modid
+        }
+
+        data {
+            data()
+            programArguments.addAll '--mod', project.modid, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', ''
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${modid}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
     // Mixin
     annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${mixin_extras_version}"))
-    implementation(jarJar("io.github.llamalad7:mixinextras-forge:${mixin_extras_version}")) {
-        jarJar.ranged(it, "[${mixin_extras_version},)")
-    }
+    implementation "io.github.llamalad7:mixinextras-neoforge:${mixin_extras_version}"
 
     // Required Dependencies
-    runtimeOnly fg.deobf("curse.maven:attributefix-280510:4911084")
-    implementation fg.deobf("io.redspace:irons_spellbooks:${irons_spells_version}")
-    compileOnly fg.deobf("io.redspace:irons_spellbooks:${irons_spells_version}:api")
-    runtimeOnly fg.deobf("io.redspace:irons_spellbooks:${irons_spells_version}")
+    runtimeOnly "curse.maven:attributefix-280510:7115922"
+    implementation "io.redspace:irons_spellbooks:${irons_spells_version}"
+    compileOnly "io.redspace:irons_spellbooks:${irons_spells_version}:api"
+    runtimeOnly "io.redspace:irons_spellbooks:${irons_spells_version}"
+    implementation "curse.maven:irons-lib-1492763:8364894"
+    implementation "curse.maven:better-combat-by-daedelus-639842:8430183"
 
     // Dev Env Mods
-    implementation fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
-    implementation fg.deobf("curse.maven:jade-324717:${jade_file_id}")
-    implementation fg.deobf("me.shedaniel.cloth:cloth-config-forge:${project.cloth_config_version}")
-    runtimeOnly fg.deobf("curse.maven:mmmmmmmmmmmm-225738:6608233")
-    implementation fg.deobf("curse.maven:spark-361579:4738952")
-    runtimeOnly fg.deobf("curse.maven:embeddium-908741:5681725")
-    runtimeOnly fg.deobf("curse.maven:modernfix-790626:7515215")
+    runtimeOnly "curse.maven:mmmmmmmmmmmm-225738:8510632"
+    implementation "curse.maven:jei-238222:8601660"
 
     // Libs
-    runtimeOnly fg.deobf("curse.maven:cloth-config-348521:5729105")
-    runtimeOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}")
-    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:${curios_version}:api")
-    runtimeOnly fg.deobf("dev.kosmx.player-anim:player-animation-lib-forge:${player_anim_version}")
-    runtimeOnly fg.deobf("curse.maven:geckolib-388172:7025129")
-    runtimeOnly fg.deobf("top.theillusivec4.caelus:caelus-forge:${caelus_version}")
-    runtimeOnly fg.deobf("curse.maven:selene-499980:6611244")
-    implementation fg.deobf("curse.maven:irons-lib-1492763:8364892")
+    runtimeOnly "curse.maven:cloth-config-348521:5729127"
+    runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
+    implementation "curse.maven:playeranimator-658587:7389814"
+    implementation "curse.maven:geckolib-388172:8350073"
+    implementation "curse.maven:caelus-308989:5694215"
+    implementation "curse.maven:selene-499980:8510630"
+    runtimeOnly "curse.maven:bookshelf-228525:7606240"
+    runtimeOnly "curse.maven:prickle-1023259:6961457"
 }
 
-mixin {
-    if (project.mixin.toBoolean()) {
-        config "${modid}.mixins.json"
-        add sourceSets.main, "${modid}.refmap.json"
-    }
-}
-
-tasks.named('processResources', ProcessResources).configure {
-    def replaceProperties = [
-            modGroup    : modGroup,
-            modid       : modid,
-            version     : version,
-            modName     : modName,
-            author      : author,
-            desc        : desc,
-            mcVersion   : mc_version,
-            javaVersion : javaVersion,
-            forgeVersion: forge_version
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : mc_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            modid                  : modid,
+            mod_name               : modName,
+            mod_version            : version,
+            mod_authors            : author,
+            mod_description        : desc,
     ]
-
     inputs.properties replaceProperties
-
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties
-    }
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
 }
 
-tasks.named('jarJar') {
-    dependsOn('reobfJar')
-    finalizedBy('reobfJarJar')
-    archiveClassifier.set('')
-}
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
 
 tasks.named('jar', Jar).configure {
     manifest {
@@ -181,21 +174,35 @@ tasks.named('jar', Jar).configure {
                 "Implementation-Title"    : fileName,
                 "Implementation-Version"  : version,
                 "Implementation-Vendor"   : author,
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-                "MixinConfigs"            : project.mixin.toBoolean() ? "${modid}.mixins.json" : ""
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }
-    finalizedBy 'reobfJar', 'jarJar'
 }
 
 java {
     withSourcesJar()
 }
 
-tasks.withType(GenerateModuleMetadata) {
-    enabled = false
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
 }

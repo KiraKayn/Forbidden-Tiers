@@ -6,17 +6,24 @@ import net.kayn.forbidden_tiers.registries.FTItemRegistry;
 import net.minecraft.world.entity.npc.VillagerTrades;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
-import net.minecraftforge.event.village.WandererTradesEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.village.WandererTradesEvent;
 
-@Mod.EventBusSubscriber(modid = ForbiddenTiers.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-public class FTWanderingTradeEvents {
+@EventBusSubscriber(
+        modid = ForbiddenTiers.MOD_ID,
+        bus = EventBusSubscriber.Bus.GAME
+)
+public final class FTWanderingTradeEvents {
 
     private static final int INK_BUY_PRICE_PER_RARITY = 5;
     private static final int INK_SALE_PRICE_PER_RARITY = 8;
+
+    private FTWanderingTradeEvents() {
+    }
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void addWanderingTrades(WandererTradesEvent event) {
@@ -31,22 +38,34 @@ public class FTWanderingTradeEvents {
     }
 
     private static VillagerTrades.ItemListing inkBuyTrade(InkItem ink) {
-        return (trader, random) -> new MerchantOffer(
-                new ItemStack(ink, 1),
-                new ItemStack(Items.EMERALD,
-                        INK_BUY_PRICE_PER_RARITY * ink.getRarity().getValue()
-                                + random.nextIntBetweenInclusive(2, 3)),
-                8, 1, .05f
-        );
+        return (trader, random) -> {
+            int emeraldCount =
+                    INK_BUY_PRICE_PER_RARITY * ink.getRarity().getValue()
+                            + random.nextIntBetweenInclusive(2, 3);
+
+            return new MerchantOffer(
+                    new ItemCost(ink, 1),
+                    new ItemStack(Items.EMERALD, emeraldCount),
+                    8,
+                    1,
+                    0.05F
+            );
+        };
     }
 
     private static VillagerTrades.ItemListing inkSellTrade(InkItem ink) {
-        return (trader, random) -> new MerchantOffer(
-                new ItemStack(Items.EMERALD,
-                        INK_SALE_PRICE_PER_RARITY * ink.getRarity().getValue()
-                                + random.nextIntBetweenInclusive(2, 3)),
-                new ItemStack(ink),
-                4, 1, .05f
-        );
+        return (trader, random) -> {
+            int emeraldCost =
+                    INK_SALE_PRICE_PER_RARITY * ink.getRarity().getValue()
+                            + random.nextIntBetweenInclusive(2, 3);
+
+            return new MerchantOffer(
+                    new ItemCost(Items.EMERALD, emeraldCost),
+                    new ItemStack(ink, 1),
+                    4,
+                    1,
+                    0.05F
+            );
+        };
     }
 }

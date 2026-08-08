@@ -1,9 +1,8 @@
 package net.kayn.forbidden_tiers.color;
 
 import net.minecraft.network.chat.TextColor;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 public class RainbowColor extends TextColor {
 

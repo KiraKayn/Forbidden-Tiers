@@ -2,11 +2,11 @@ package net.kayn.forbidden_tiers.event;
 
 import io.redspace.ironsspellbooks.registries.CreativeTabRegistry;
 import net.kayn.forbidden_tiers.registries.FTItemRegistry;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 public class CreativeTabEvents {
 
     @SubscribeEvent

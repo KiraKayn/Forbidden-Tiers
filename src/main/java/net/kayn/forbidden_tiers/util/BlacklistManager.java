@@ -7,9 +7,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-@Mod.EventBusSubscriber(modid = "forbidden_tiers")
+@EventBusSubscriber(modid = "forbidden_tiers")
 public class BlacklistManager {
     private static final Logger LOGGER = LoggerFactory.getLogger("ForbiddenTiers/Blacklist");
     private static final Gson GSON = new Gson();
@@ -50,7 +50,7 @@ public class BlacklistManager {
 
     private static Set<ResourceLocation> loadTagManual(ResourceManager manager, String fileName) {
         Set<ResourceLocation> ids = new HashSet<>();
-        ResourceLocation location = new ResourceLocation("forbidden_tiers", "tags/irons_spellbooks/spells/" + fileName + ".json");
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("forbidden_tiers", "tags/irons_spellbooks/spells/" + fileName + ".json");
 
         manager.getResource(location).ifPresent(resource -> {
             try (Reader reader = resource.openAsReader()) {
@@ -59,7 +59,7 @@ public class BlacklistManager {
                     JsonArray values = json.getAsJsonArray("values");
                     for (int i = 0; i < values.size(); i++) {
                         String spellId = values.get(i).getAsString();
-                        ids.add(new ResourceLocation(spellId));
+                        ids.add(ResourceLocation.parse(spellId));
                     }
                 }
             } catch (Exception e) {

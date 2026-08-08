@@ -14,7 +14,7 @@ import net.kayn.forbidden_tiers.registries.FTItemRegistry;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.List;
 
@@ -22,7 +22,7 @@ import java.util.List;
 public class FTJeiPlugin implements IModPlugin {
 
     private static final ResourceLocation PLUGIN_ID =
-            new ResourceLocation(ForbiddenTiers.MOD_ID, "jei_plugin");
+            ResourceLocation.fromNamespaceAndPath(ForbiddenTiers.MOD_ID, "jei_plugin");
 
     @Override
     public ResourceLocation getPluginUid() {

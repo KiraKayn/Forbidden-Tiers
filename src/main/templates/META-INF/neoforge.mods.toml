@@ -1,5 +1,5 @@
 modLoader="javafml"
-loaderVersion="[47,)"
+loaderVersion="[4,)"
 
 license="LGPL-2.1-or-later"
 issueTrackerURL=""
@@ -7,7 +7,7 @@ showAsResourcePack=false
 
 [[mods]]
 modId="forbidden_tiers"
-version="${version}"
+version="${mod_version}"
 displayName="Forbidden Tiers"
 displayURL=""
 logoFile=""
@@ -20,23 +20,26 @@ A mod that adds reenables the Mythic and Ancient tiers for ISS
 [[accessTransformers]]
 file="META-INF/accesstransformer.cfg"
 
+[[mixins]]
+config="forbidden_tiers.mixins.json"
+
 [[dependencies.forbidden_tiers]]
-modId="forge"
-mandatory=true
-versionRange="[47.4.0,)"
+modId="neoforge"
+type="required"
+versionRange="[21.1.0,)"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.forbidden_tiers]]
 modId="minecraft"
-mandatory=true
-versionRange="[1.20.1,1.21)"
+type="required"
+versionRange="[1.21.1,1.21.2)"
 ordering="NONE"
 side="BOTH"
 
 [[dependencies.forbidden_tiers]]
 modId="irons_spellbooks"
-mandatory=true
+type="required"
 versionRange="[1.0,)"
 ordering="AFTER"
 side="BOTH"
